@@ -27,8 +27,8 @@ different regions (with unpredictable WAN latencies between the regions). YugaBy
 a fully relational SQL API for scale-out RDBMS workloads, as well as YCQL, a SQL-based flexible schema 
 API for internet-scale workloads.
 
+A distributed SQL database is a complex integration of software comprised of several components:
 <ul>
- 	<li>A distributed SQL database is a complex integration of software comprised of several components:</li>
  	<li>API layer responsible for language-specific query compilation, execution &amp; optimization</li>
  	<li>Replication &amp; transaction coordination</li>
  	<li>Data sharding &amp; load balancing</li>
