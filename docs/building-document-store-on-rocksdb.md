@@ -6,11 +6,12 @@ adapted over the years to a wide range of workloads including database storage e
 application data caching.
 
 In this document, we explain our rationale for selecting RocksDB as a foundational building
-block  for YugaByte DB. We also highlight how we model rows in YugaByte DB as documents that 
+block  for YugaByte DB. We also describe how we model rows in YugaByte DB as documents that 
 then  get stored as multiple  key-value pairs in RocksDB.
+
 <h2 style="text-align: left;">Why Does a Database Need Another Database?</h2>
 
-You may be wondering why a database like <a href="https://github.com/YugaByte/yugabyte-db">YugaByte DB</a> 
+One might wonder why a database like <a href="https://github.com/YugaByte/yugabyte-db">YugaByte DB</a> 
 depends on another database like RocksDB. While both have the letters “DB” in their name, they serve 
 significantly different needs.
 
@@ -48,11 +49,23 @@ alt="" width="404" height="388" />
 
 YQL implements the APIs supported by YugaByte DB and runs on DocDB, the datastore common across all YQL APIs.
 
-Irrespective of whether a database is distributed or monolithic, a well-designed per-node storage engine is the critical to reliability, efficiency and performance of the database. This is the precise reason why DocDB uses <strong>a highly customized version of RocksDB as its per-node storage engine.</strong> As described in <a href="enhancing-rocksdb-for-speed-and-scale.md">“Extending RocksDB for Speed &amp; Scale”</a>, this engine is fully optimized for high performance and large datasets. All changes made to RocksDB are distributed as part of YugaByte DB, an <a href="https://github.com/YugaByte/yugabyte-db">open source Apache 2.0 project</a>.
-<h2 style="text-align: left;">Why RocksDB?</h2>
-We were data infrastructure engineers at Facebook during the years when RocksDB was under initial development. Watching RocksDB grow right in front of us into an ideal datastore for low latency and high throughput storage (such as flash SSDs) was exciting to say the least.
+Irrespective of whether a database is distributed or monolithic, a well-designed per-node storage 
+engine is the critical to reliability, efficiency and performance of the database. This is the precise 
+reason why DocDB uses <strong>a highly customized version of RocksDB as its per-node storage engine.
+</strong> As described in <a href="enhancing-rocksdb-for-speed-and-scale.md">“Extending RocksDB for 
+Speed &amp; Scale”</a>, this engine is fully optimized for high performance and large datasets. All 
+changes made to RocksDB are distributed as part of <a href="https://github.com/YugaByte/yugabyte-db">
+this open source Apache 2.0 project</a>.
 
-When we started the YugaByte DB project in early 2016, RocksDB was already a mature project thanks to its wide adoption across Facebook and other web-scale companies including Yahoo and LinkedIn. This gave us the confidence to use it as a starting point for YugaByte DB.
+<h2 style="text-align: left;">Why RocksDB?</h2>
+
+We were data infrastructure engineers at Facebook during the years when RocksDB was under initial 
+development. Watching RocksDB grow right in front of us into an ideal datastore for low latency 
+and high throughput storage (such as flash SSDs) was exciting to say the least.
+
+When we started the YugaByte DB project in early 2016, RocksDB was already a mature project thanks 
+to its wide adoption across Facebook and other web-scale companies including Yahoo and LinkedIn. 
+This gave us the confidence to use it as a starting point for YugaByte DB.
 
 The other two other key factors in our decision to use RocksDB were its Log Structured Merge 
 tree (LSM) design and our desire to implement YugaByte DB in C++.
@@ -62,17 +75,34 @@ tree (LSM) design and our desire to implement YugaByte DB in C++.
 LSM storage engines like RocksDB have become the de facto standard today for handling workloads 
 with fast-growing data especially as SSDs keep getting cheaper.
 
-Google’s OLTP databases, namely Spanner and its precursor BigTable, use an LSM store. Facebook’s user databases <a href="https://code.fb.com/core-data/myrocks-a-space-and-write-optimized-mysql-database/">migrated away</a> from using MySQL with an InnoDB (B-Tree) engine to MySQL with RocksDB-based MyRocks (LSM) engine. MongoDB’s WiredTiger storage engine offers an LSM option as well even though MongoDB itself does not support that option. Newer time series data stores such as InfluxDB also follow the LSM design.
+Google’s OLTP databases, namely Spanner and its precursor BigTable, use an LSM store. Facebook’s 
+user databases <a href="https://code.fb.com/core-data/myrocks-a-space-and-write-optimized-mysql-database/">
+migrated away</a> from using MySQL with an InnoDB (B-Tree) engine to MySQL with 
+RocksDB-based MyRocks (LSM) engine. MongoDB’s WiredTiger storage engine offers an LSM option 
+as well even though MongoDB itself does not support that option. Newer time series data stores such 
+as InfluxDB also follow the LSM design.
 
-As previously described in <a href="https://blog.yugabyte.com/a-busy-developers-guide-to-database-storage-engines-the-basics/">“A Busy Developer’s Guide to Database Storage Engines”</a>, there are two primary reasons behind LSM’s overwhelming success over B-Trees.
+As previously described in <a href="https://blog.yugabyte.com/a-busy-developers-guide-to-database-storage-engines-the-basics/">“A Busy Developer’s Guide to Database Storage Engines”</a>, there are two primary 
+reasons behind LSM’s overwhelming success over B-Trees.
 
-First reason is that writes in an LSM engine are sequential, and SSDs handle sequential writes much better than random writes. As explained in this <a href="https://www.seagate.com/tech-insights/lies-damn-lies-and-ssd-benchmark-master-ti/">Seagate article</a>, sequential writes dramatically simplifies garbage collection at the SSD layer while random writes (as in a B-Tree engine) causes SSD fragmentation. The defragmentation process impacts SSD performance significantly.
+First reason is that writes in an LSM engine are sequential, and SSDs handle sequential writes 
+much better than random writes. As explained in this <a href="https://www.seagate.com/tech-insights/lies-damn-lies-and-ssd-benchmark-master-ti/">Seagate article</a>, sequential writes dramatically 
+simplifies garbage collection at the SSD layer while random writes (as in a B-Tree engine) 
+causes SSD fragmentation. The defragmentation process impacts SSD performance significantly.
 
-Secondly, even though the conventional wisdom is that B-Trees are better for read intensive-workloads, the reality is that this wisdom is inaccurate for many modern workloads.
+Secondly, even though the conventional wisdom is that B-Trees are better for read intensive-workloads,
+the reality is that this wisdom is inaccurate for many modern workloads.
 <ul>
- 	<li>LSMs require more read IOPS from the drives in general. However, unlike HDDs, SSDs offer very high read throughput at microsecond latencies for this to be a major issue with modern hardware.</li>
- 	<li>For random read workloads, bloom filters help reduce the number of read IOPS often making it close to B-Tree style workloads by trading off some CPU.</li>
- 	<li>For read-recent workloads (e.g., “Get top 50 messages of an inbox or recent 6 hours of activity for a device”), LSMs outperform B-Trees. This is due to the fact that in an LSM data is naturally time partitioned, while still being clustered by say the “user id” (in a Inbox-like application) or “device id” (as in a IOT or time series application).</li>
+ 	<li>LSMs require more read IOPS from the drives in general. However, unlike HDDs, SSDs 
+		offer very high read throughput at microsecond latencies for this to be a major 
+		issue with modern hardware.</li>
+ 	<li>For random read workloads, bloom filters help reduce the number of read IOPS often 
+		making it close to B-Tree style workloads by trading off some CPU.</li>
+ 	<li>For read-recent workloads (e.g., “Get top 50 messages of an inbox or recent 6 
+		hours of activity for a device”), LSMs outperform B-Trees. This is due to the fact 
+		that in an LSM data is naturally time partitioned, while still being clustered by 
+		say the “user id” (in a Inbox-like application) or “device id” (as in a IOT or 
+		time series application).</li>
 </ul>
 
 <h3 style="text-align: left;">Language Matters: C++, Java, or Go?</h3>
@@ -85,7 +115,8 @@ IO. For example, CockroachDB, another database that uses RocksDB as its storage 
 incurs a Go &lt;=&gt; C++ switch in the critical IO path because the query execution layer is 
 in Go language and storage engine (RocksDB) is C++. The number of these language-boundary 
 hops needed to process fairly simple queries can still be significant and this one of 
-the factors that adversely <a href="https://blog.yugabyte.com/yugabyte-db-vs-cockroachdb-performance-benchmarks-for-internet-scale-transactional-workloads/">impacts performance.</a>
+the factors that adversely
+<a href="https://blog.yugabyte.com/yugabyte-db-vs-cockroachdb-performance-benchmarks-for-internet-scale-transactional-workloads/">impacts performance.</a>
 
 We resisted the temptation to develop a high performance database in a garbage collected 
 language such as Java (e.g., Apache Cassandra) or Go (e.g., CockroachDB). Such implementations 
@@ -134,7 +165,8 @@ a MVCC timestamp (sorted in reverse order). When we encode primitive values
 in keys, we use a binary-comparable encoding, so that the sort order in 
 RocksDB ends up to be the desired one.
 
-Assume that the sample document above was written at time T10 entirely.  Internally this is stored using five RocksDB key-value pairs:
+Assume that the sample document above was written at time T10 entirely.  Internally this 
+is stored using five RocksDB key-value pairs:
 
 <pre class="lang:default decode:true">user-123, T10 -&gt; {} // This is an init marker
 user-123, addr, T10 -&gt; {} // This is a sub-document init marker
