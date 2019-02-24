@@ -48,7 +48,7 @@ alt="" width="404" height="388" />
 
 YQL implements the APIs supported by YugaByte DB and runs on DocDB, the datastore common across all YQL APIs.
 
-Irrespective of whether a database is distributed or monolithic, a well-designed per-node storage engine is the critical to reliability, efficiency and performance of the database. This is the precise reason why DocDB uses <strong>a highly customized version of RocksDB as its per-node storage engine.</strong> As highlighted in our next post <a href="enhancing-rocksdb-for-speed-and-scale.md">“Extending RocksDB for Speed &amp; Scale”</a>, this engine is fully optimized for high performance and large datasets. All changes made to RocksDB are distributed as part of YugaByte DB, an <a href="https://github.com/YugaByte/yugabyte-db">open source Apache 2.0 project</a>.
+Irrespective of whether a database is distributed or monolithic, a well-designed per-node storage engine is the critical to reliability, efficiency and performance of the database. This is the precise reason why DocDB uses <strong>a highly customized version of RocksDB as its per-node storage engine.</strong> As described in <a href="enhancing-rocksdb-for-speed-and-scale.md">“Extending RocksDB for Speed &amp; Scale”</a>, this engine is fully optimized for high performance and large datasets. All changes made to RocksDB are distributed as part of YugaByte DB, an <a href="https://github.com/YugaByte/yugabyte-db">open source Apache 2.0 project</a>.
 <h2 style="text-align: left;">Why RocksDB?</h2>
 We were data infrastructure engineers at Facebook during the years when RocksDB was under initial development. Watching RocksDB grow right in front of us into an ideal datastore for low latency and high throughput storage (such as flash SSDs) was exciting to say the least.
 
@@ -168,7 +168,7 @@ RocksDB is arguably one of the most successful open source data infrastructure p
 decade. It is second to none when it comes to fast monolithic key-value storage. YugaByte DB leverages 
 RocksDB’s strengths in the context of embedding it as the per-node storage engine of DocDB, its distributed 
 document store. Every row managed by YugaByte DB is stored as a document in DocDB that internally 
-maps to multiple key-value pairs in RocksDB. As described in our next post 
+maps to multiple key-value pairs in RocksDB. As described in
 <a href="enhancing-rocksdb-for-speed-and-scale.md">“Extending RocksDB for Speed &amp; Scale”</a>, 
 we also had to make significant enhancements to RocksDB in this context. 
 
