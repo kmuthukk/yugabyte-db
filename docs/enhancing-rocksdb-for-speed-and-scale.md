@@ -1,15 +1,13 @@
 <h1> Enhancing RocksDB for Speed & Scale </h1>
 
 As described in <a href="building-document-store-on-rocksdb.md">
-“How We Built a High Performance Document Store on RocksDB?”</a>, YugaByte DB’s distributed 
+“Building a High Performance Document Store on RocksDB”</a>, YugaByte DB’s distributed 
 document store (DocDB) uses RocksDB as its per-node storage engine. We made multiple 
 performance and data density related enhancements to RocksDB in the course of embedding 
 it into <a href="https://docs.yugabyte.com/latest/architecture/concepts/docdb/persistence/">DocDB’s 
-document storage layer</a> (figure below). These enhancements are distributed as part of 
-the <a href="https://github.com/YugaByte/yugabyte-db">YugaByte DB open source project.</a> 
+document storage layer</a> (figure below).</a> 
 
-In this document deep dive into  these enhancements that might of  benefit to teams interested 
-in leveraging RocksDB beyond its original design intent of a fast monolithic key-value store.
+In this document, we take a close look at these enhancements to RocksDB.
 
 
 <p style="text-align: center;">
@@ -20,7 +18,7 @@ alt="" width="787" height="445" />
 
 <h2 style="text-align: left;">Scan Resistant Cache</h2>
 We <a href="https://github.com/YugaByte/yugabyte-db/commit/0c6a3f018ac90724ac1106ff248c051afbdd6979">enhanced 
-RocksDB’s block cache</a> to become scan resistant. This prevents operations such as long-running 
+RocksDB’s block cache</a> to be scan resistant. This prevents operations such as long-running 
 scans (e.g., due to an occasional large query or a background Spark job) from polluting the 
 entire cache with poor quality data and wiping out useful/hot data. The new block cache uses 
 a <a href="https://dev.mysql.com/doc/refman/8.0/en/midpoint-insertion.html">MySQL</a>/
@@ -34,8 +32,8 @@ RocksDB’s SSTable files contain data and metadata such as indexes &amp; bloom
 filters. The data portion of an SSTable file was already chunked into blocks 
 (32KB default) and demand-paged.
 
-However, the bloom filter &amp; index portions were monolithic and needed to 
-be brought into memory in an all-or-nothing manner. For large datasets, this 
+However, the bloom filter &amp; index portions were monolithic (at least when we started using RocksDB in 2016)
+and needed to be brought into memory in an all-or-nothing manner. For large datasets, this 
 put unnecessary pressure on memory requirements while also causing fragmentation.
 
 We <a href="https://github.com/YugaByte/yugabyte-db/commit/147312863b104d2d4b2f267cbb6b4fc95f35f3a8">
@@ -45,6 +43,7 @@ This enables YugaByte DB to support very large data sets in a RAM efficient and 
 allocator friendly manner.
 
 <h2 style="text-align: left;">Multiple Instances of RocksDB Per Node</h2>
+
 DocDB auto shards tables into multiple tablets. It dedicates one RocksDB 
 instance per tablet as opposed to sharing a single RocksDB instance across 
 multiple tablets on a node.
