@@ -3,7 +3,7 @@
 As described in <a href="building-document-store-on-rocksdb.md">
 “Building a High Performance Document Store on RocksDB”</a>, YugaByte DB’s distributed 
 document store (DocDB) uses RocksDB as its per-node storage engine. We made multiple 
-performance and data density related enhancements to RocksDB in the course of embedding 
+performance and high data density related enhancements to RocksDB in the course of embedding 
 it into <a href="https://docs.yugabyte.com/latest/architecture/concepts/docdb/persistence/">DocDB’s 
 document storage layer</a> (figure below).</a> 
 
@@ -17,6 +17,7 @@ alt="" width="787" height="445" />
 </p>
 
 <h2 style="text-align: left;">Scan Resistant Cache</h2>
+
 We <a href="https://github.com/YugaByte/yugabyte-db/commit/0c6a3f018ac90724ac1106ff248c051afbdd6979">enhanced 
 RocksDB’s block cache</a> to be scan resistant. This prevents operations such as long-running 
 scans (e.g., due to an occasional large query or a background Spark job) from polluting the 
