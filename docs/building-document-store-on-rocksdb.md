@@ -44,7 +44,6 @@ the distributed document store.
 <img class="alignnone wp-image-634 aligncenter" 
 src="https://blog.yugabyte.com/wp-content/uploads/2019/02/yugabyte-db-rocksdb-docdb1.png" 
 alt="" width="404" height="388" />
-<p style="text-align: center;"><em>YugaByte DB Logical Architecture</em></p>
 &nbsp;
 
 YQL implements the APIs supported by YugaByte DB and runs on DocDB, the datastore common across all YQL APIs.
