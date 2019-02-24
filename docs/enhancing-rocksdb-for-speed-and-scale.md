@@ -7,8 +7,20 @@ performance and high data density related enhancements to RocksDB in the course 
 it into <a href="https://docs.yugabyte.com/latest/architecture/concepts/docdb/persistence/">DocDB’s 
 document storage layer</a> (figure below).</a> 
 
-In this document, we take a close look at these enhancements to RocksDB.
 
+RocksDB’s immense  popularity as a fast embeddable storage engine combined with its 
+Log-Structured Merge trees (LSM) design and C++ implementation were the critical 
+factors in selecting it  as DocDB’s per-node storage engine. Every row managed by 
+YugaByte DB is stored as  a document in DocDB that internally maps to multiple 
+key-value pairs in RocksDB.
+
+As we started building the document storage layer in DocDB, we realized that we need 
+to enhance RocksDB significantly. This is because each RocksDB instance could no 
+longer operate in isolation. It needed to share resources with other RocksDB instances 
+present on the same node. Additionally, we also wanted to support very large data sets
+per node, while keeping memory requirements reasonable.
+
+In this document, we take a close look at these enhancements to RocksDB.
 
 <p style="text-align: center;">
 <img class="aligncenter wp-image-644 size-full" 
@@ -86,8 +98,13 @@ However, in practice, using RocksDB in this form has required some careful
 engineering &amp; enhancements. We have listed some of the important ones here.
 
 <h3>Server-global Block Cache</h3>
-DocDB uses a <a href="https://github.com/YugaByte/yugabyte-db/commit/3d8e83e4298bcf4cca2fd84a58e2f237c925ba30">shared block cache across all instances</a> of RocksDB on the server. This avoids per-tablet cache silos and increases effective utilization of memory.
+
+DocDB uses a <a href="https://github.com/YugaByte/yugabyte-db/commit/3d8e83e4298bcf4cca2fd84a58e2f237c925ba30">
+shared block cache across all instances</a> of RocksDB on the server. This avoids per-tablet 
+cache silos and increases effective utilization of memory.
+
 <h3>Server-global Memstore Limit</h3>
+
 RocksDB allows a per-memstore flush size to be configured. This is not sufficient in 
 practice because the number of memstores may change over time as users create new tables, 
 or tablets of a table move between servers due to load balancing. Picking a very small 
@@ -96,28 +113,41 @@ write amplification. On the other hand picking a very large per-memstore flush s
 for a node with lots of tablets, increases memory requirement on the system and also 
 the recovery time (in case of server restart).
 
-To avoid these issues, we <a href="https://github.com/YugaByte/yugabyte-db/commit/faed8f0cd55e25f2e72c39fffa72c27c5f84fca3">enhanced RocksDB to enforce a global memstore limit.</a> When the memory used by all memstores reaches this limit, the memstore with the oldest record (determined using hybrid timestamps) is flushed.
+To avoid these issues, we <a href="https://github.com/YugaByte/yugabyte-db/commit/faed8f0cd55e25f2e72c39fffa72c27c5f84fca3">enhanced RocksDB to enforce a 
+ global memstore limit.</a> When the memory used by all memstores reaches this limit, 
+ the memstore with the oldest record (determined using hybrid timestamps) is flushed.
+ 
 <h3>Separate Queues for Large &amp; Small Compactions</h3>
+
 RocksDB supports a single compaction queue with multiple compaction threads. But 
 this leads to scenarios where some large compactions (by way of the amount of data 
 to read/write) get scheduled on all these threads and end up starving the smaller 
 compactions. This leads to too many store files, write stalls, and high read latencies.
 
-We <a href="https://github.com/YugaByte/yugabyte-db/commit/dde2ecd5ddf4b01879e32f033e0a80e37e18341a">enhanced RocksDB to enable multiple queues</a> based on the total input data files size in order to prioritize compactions based on the sizes. The queues are serviced by a configurable number of threads, where a certain subset of these threads are reserved for small compactions so that the number of SSTable files doesn’t grow too quickly for any tablet.
+We <a href="https://github.com/YugaByte/yugabyte-db/commit/dde2ecd5ddf4b01879e32f033e0a80e37e18341a">
+enhanced RocksDB to enable multiple queues</a> based on the total input data files size in order 
+to prioritize  compactions based on the sizes. The queues are serviced by a configurable number 
+of threads, where a certain subset of these threads are reserved for small compactions so that 
+the number of SSTable files doesn’t grow too quickly for any tablet.
 
 <h3>Smart Load Balancing Across Multiple Disks</h3>
+
 DocDB supports a just-a-bunch-of-disks (JBOD) setup of multiple SSDs and doesn’t require a 
 hardware or software RAID. The RocksDB instances for various tablets are 
 <a href="https://github.com/YugaByte/yugabyte-db/commit/d53de140eccaf7bfd31b938a4a8d5bd88d950329">balanced 
 across the available SSDs uniformly</a>, on a per-table basis to ensure that each SSD has a 
 similar number of tablets from each table and is taking uniform type of load. Other types 
 of load balancing in DocDB are also done on a <strong>per-table basis</strong>, be it:
+
 <ul>
  	<li>Balancing of tablet replicas across nodes</li>
  	<li>Balancing of leader/followers of Raft groups across nodes</li>
  	<li>Balancing of Raft logs across SSDs on a node</li>
 </ul>
+
+
 <h2 style="text-align: left;">Additional Optimizations</h2>
+
 As noted in our <a href="https://blog.yugabyte.com/">previous post</a>, DocDB manages 
 transactional processing, replication, concurrency control, data time-to-live (TTL), and 
 recovery/failover mechanisms at the overall cluster level as opposed to the per-node 
@@ -125,6 +155,7 @@ storage engine level. Therefore, some of the equivalent functionality provided b
 RocksDB became unnecessary and were removed.
 
 <h3>Double Journaling Avoidance in the Write Ahead Log (WAL)</h3>
+
 DocDB uses the Raft consensus protocol for replication. Changes to the distributed system, 
 such as row updates, are already being recorded and journaled as part of the Raft logs. 
 The additional WAL mechanism in RocksDB is unnecessary and would only add overhead.
@@ -150,21 +181,4 @@ reports (<a href="http://users.ece.utexas.edu/~garg/pdslab/david/hybrid-time-tec
 or <a href="https://cse.buffalo.edu/tech-reports/2014-04.pdf">#2</a>) for more details.
 </blockquote>
 
-<h2 style="text-align: left;">Summary</h2>
-DocDB is the distributed document store that powers YugaByte DB. RocksDB’s immense 
-popularity as a fast embeddable storage engine combined with its Log-Structured Merge 
-trees (LSM) design and C++ implementation were the critical factors in selecting it 
-as DocDB’s per-node storage engine. Every row managed by YugaByte DB is stored as 
-a document in DocDB that internally maps to multiple key-value pairs in RocksDB.
-
-As we started building the document storage layer in DocDB, we realized that we need 
-to enhance RocksDB significantly. This is because each RocksDB instance could no 
-longer operate in isolation. It needed to share resources with other RocksDB instances 
-present on the same node. Additionally, we needed to ensure that each DocDB tablet 
-(that maps to its own dedicated RocksDB instance) can grow to become arbitrarily 
-large without impacting the performance of other tablets (and the associated 
-RocksDB instances). 
-
-We hope the enhancements highlighted in this post can help other teams looking 
-to solve similar performance and scalability challenges on top of RocksDB.
 
