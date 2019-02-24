@@ -113,7 +113,7 @@ We didn’t want to put an inter-language switch in the critical path of a datab
 IO. For example, CockroachDB, another database that uses RocksDB as its storage engine, 
 incurs a Go &lt;=&gt; C++ switch in the critical IO path because the query execution layer is 
 in Go language and storage engine (RocksDB) is C++. The number of these language-boundary 
-hops needed to process fairly simple queries can still be significant and this one of 
+hops needed to process fairly simple queries can still be significant and this is one of 
 the factors that adversely
 <a href="https://blog.yugabyte.com/yugabyte-db-vs-cockroachdb-performance-benchmarks-for-internet-scale-transactional-workloads/">impacts performance.</a>
 
@@ -133,6 +133,8 @@ YugaByte DB is internally stored in DocDB as a separate document. This enables Y
 pluggable API architecture where new APIs can be added on top of the common document data model. 
 Each DocDB document is mapped to multiple key-value pairs in RocksDB, the underlying per-node 
 storage engine.
+
+
 <h3>Data Types</h3>
 DocDB <a href="https://github.com/YugaByte/yugabyte-db/commit/006d0dccf132c02b11c66d5eeb7da225df2e44b4">
 extends RocksDB</a> to efficiently handle documents that include both primitive and non-primitive 
@@ -157,6 +159,7 @@ For example, consider the following document stored in DocDB.
 	},
 	age = 36
 }</pre>
+
 The above document is stored in RocksDB as a set of keys. Each key stored in 
 RocksDB consists of a number of components, where the first component is a 
 “document key”, followed by a few scalar components, and finally followed by 
@@ -183,6 +186,7 @@ hooks.
 
 DocDB ensures that the database read/write operations can be executed at the 
 lowest cost possible by using multiple techniques. Following are a few examples.
+
 <ul>
  	<li>Fine-grained updates to only a small subset of a row (such as a column 
   in the YSQL API) or an element in a collection (such as in the YCQL API) without 
@@ -197,14 +201,12 @@ lowest cost possible by using multiple techniques. Following are a few examples.
 <h2 style="text-align: left;">Summary</h2>
 RocksDB is arguably one of the most successful open source data infrastructure projects in the last
 decade. It is second to none when it comes to fast monolithic key-value storage. YugaByte DB leverages 
-RocksDB’s strengths in the context of embedding it as the per-node storage engine of DocDB, its distributed 
+RocksDB’s strengths in the context of embedding it as the per-node storage engine of DocDB, YugaByte DB's distributed 
 document store. Every row managed by YugaByte DB is stored as a document in DocDB that internally 
 maps to multiple key-value pairs in RocksDB. As described in
 <a href="enhancing-rocksdb-for-speed-and-scale.md">“Extending RocksDB for Speed &amp; Scale”</a>, 
 we also had to make significant enhancements to RocksDB in this context. 
 
-We hope our design choices and lessons learnt help guide engineering teams looking to leverage RocksDB 
-beyond its design original intent.
 
 Building a massively scalable, high performance SQL database is a hard engineering problem to say the least. 
 Using RocksDB as a foundational building block certainly made life easier for us as an engineering team. 
