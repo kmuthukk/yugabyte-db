@@ -1,6 +1,6 @@
 <h1> Enhancing RocksDB for Speed & Scale </h1>
 
-As described in our previous post <a href="https://blog.yugabyte.com/how-we-built-a-high-performance-document-store-on-rocksdb/">
+As described in <a href="building-document-store-on-rocksdb.md">
 “How We Built a High Performance Document Store on RocksDB?”</a>, YugaByte DB’s distributed 
 document store (DocDB) uses RocksDB as its per-node storage engine. We made multiple 
 performance and data density related enhancements to RocksDB in the course of embedding 
