@@ -33,15 +33,16 @@ RocksDB’s SSTable files contain data and metadata such as indexes &amp; bloom
 filters. The data portion of an SSTable file was already chunked into blocks 
 (32KB default) and demand-paged.
 
-However, the bloom filter &amp; index portions were monolithic (at least when we started using RocksDB in 2016)
-and needed to be brought into memory in an all-or-nothing manner. For large datasets, this 
-put unnecessary pressure on memory requirements while also causing fragmentation.
+However, the bloom filter &amp; index portions were monolithic (at least when we 
+started using RocksDB in 2016) and needed to be brought into memory in an 
+all-or-nothing manner. For large datasets, this increases memory requirements and causes 
+memory fragmentation.
 
 We <a href="https://github.com/YugaByte/yugabyte-db/commit/147312863b104d2d4b2f267cbb6b4fc95f35f3a8">
 enhanced RocksDB’s index and bloom filters</a> to be multi-level/block-oriented structures 
-so that these metadata blocks can be demand-paged into the block cache much like data blocks. 
-This enables YugaByte DB to support very large data sets in a RAM efficient and memory 
-allocator friendly manner.
+so that these metadata blocks can be demand-paged in uniform sized chunks into the block cache 
+much like data blocks.  This enables YugaByte DB to support very large data sets in a RAM efficient 
+and memory allocator friendly manner.
 
 <h2 style="text-align: left;">Multiple Instances of RocksDB Per Node</h2>
 
