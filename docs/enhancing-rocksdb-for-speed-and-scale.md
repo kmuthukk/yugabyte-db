@@ -7,7 +7,6 @@ performance and high data density related enhancements to RocksDB in the course 
 it into <a href="https://docs.yugabyte.com/latest/architecture/concepts/docdb/persistence/">DocDB’s 
 document storage layer</a> (figure below).</a> 
 
-
 RocksDB’s immense  popularity as a fast embeddable storage engine combined with its 
 Log-Structured Merge trees (LSM) design and C++ implementation were the critical 
 factors in selecting it  as DocDB’s per-node storage engine. Every row managed by 
@@ -28,17 +27,6 @@ src="https://blog.yugabyte.com/wp-content/uploads/2019/02/docdb-rocksdb.png"
 alt="" width="787" height="445" />
 </p>
 
-<h2 style="text-align: left;">Scan Resistant Cache</h2>
-
-We <a href="https://github.com/YugaByte/yugabyte-db/commit/0c6a3f018ac90724ac1106ff248c051afbdd6979">enhanced 
-RocksDB’s block cache</a> to be scan resistant. This prevents operations such as long-running 
-scans (e.g., due to an occasional large query or a background Spark job) from polluting the 
-entire cache with poor quality data and wiping out useful/hot data. The new block cache uses 
-a <a href="https://dev.mysql.com/doc/refman/8.0/en/midpoint-insertion.html">MySQL</a>/
-<a href="https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/io/hfile/LruBlockCache.java">
-HBase</a> like mid-point insertion strategy where the LRU is divided into two portions 
-and multiple touches to a block are required before it is promoted to the 
-multi-touch/hot portion of the cache.
 
 <h2 style="text-align: left;">Block-based Splitting of Bloom/Index Data</h2>
 RocksDB’s SSTable files contain data and metadata such as indexes &amp; bloom 
@@ -145,6 +133,18 @@ of load balancing in DocDB are also done on a <strong>per-table basis</strong>, 
  	<li>Balancing of Raft logs across SSDs on a node</li>
 </ul>
 
+
+<h2 style="text-align: left;">Scan Resistant Cache</h2>
+
+We <a href="https://github.com/YugaByte/yugabyte-db/commit/0c6a3f018ac90724ac1106ff248c051afbdd6979">enhanced 
+RocksDB’s block cache</a> to be scan resistant. This prevents operations such as long-running 
+scans (e.g., due to an occasional large query or a background Spark job) from polluting the 
+entire cache with poor quality data and wiping out useful/hot data. The new block cache uses 
+a <a href="https://dev.mysql.com/doc/refman/8.0/en/midpoint-insertion.html">MySQL</a>/
+<a href="https://github.com/apache/hbase/blob/master/hbase-server/src/main/java/org/apache/hadoop/hbase/io/hfile/LruBlockCache.java">
+HBase</a> like mid-point insertion strategy where the LRU is divided into two portions 
+and multiple touches to a block are required before it is promoted to the 
+multi-touch/hot portion of the cache.
 
 <h2 style="text-align: left;">Additional Optimizations</h2>
 
