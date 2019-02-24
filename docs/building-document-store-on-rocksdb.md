@@ -1,10 +1,13 @@
-<h2>Building a high performance document store on RocksDB</h2>
+<h1>Building a high performance document store on RocksDB</h1>
 
-<a href="https://rocksdb.org/">RocksDB</a> is a popular embeddable persistent key-value store. First open sourced by Facebook in 2012 as a fork of the Google LevelDB project, it has been adapted over the years to a wide range of workloads including database storage engines and application data caching.
+<a href="https://rocksdb.org/">RocksDB</a> is a popular embeddable persistent key-value store. 
+First open sourced by Facebook in 2012 as a fork of the Google LevelDB project, it has been 
+adapted over the years to a wide range of workloads including database storage engines and 
+application data caching.
 
-In this document, we explain our rationale for selecting RocksDB as a foundational building block 
-for YugaByte DB. We also highlight how we model rows in YugaByte DB as documents that then 
-get stored as multiple  key-value pairs in RocksDB.
+In this document, we explain our rationale for selecting RocksDB as a foundational building
+block  for YugaByte DB. We also highlight how we model rows in YugaByte DB as documents that 
+then  get stored as multiple  key-value pairs in RocksDB.
 <h2 style="text-align: left;">Why Does a Database Need Another Database?</h2>
 
 You may be wondering why a database like <a href="https://github.com/YugaByte/yugabyte-db">YugaByte DB</a> 
